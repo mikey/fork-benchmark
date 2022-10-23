@@ -1,2 +1,2 @@
 fork-benchmark: fork-benchmark.c
-	$(CC) fork-benchmark.c -o fork-benchmark
+	$(CC) -O2 fork-benchmark.c -o fork-benchmark
