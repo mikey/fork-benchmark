@@ -35,18 +35,18 @@ struct timeval *result, *x, *y;
 
 int main(int argc, char *argv[], char *env[])
 {
-    int number_of_forks;
-    int i;
+    int number_of_forks, number_of_procs;
+    int i, parent;
 
-    if (argc != 2) {
+    if (strcmp(argv[1], "-q") == 0) {
+        exit(0);
+    }
+
+    if (argc != 3) {
         fprintf(stderr, "Usage: \%s number-of-forks\n", argv[0]);
         fprintf(stderr, "Fork and exec number-of-forks process.\n");
         fprintf(stderr, "Copyleft (C) Laszlo Monda <http://monda.hu>\n");
         exit(1);
-    }
-
-    if (strcmp(argv[1], "-q") == 0) {
-        exit(0);
     }
 
     if (sscanf(argv[1], "%i", &number_of_forks) == 0) {
@@ -55,20 +55,36 @@ int main(int argc, char *argv[], char *env[])
         exit(2);
     }
 
-    gettimeofday(&timeval1, &mytimezone);
-
-    for (i=0; i<number_of_forks; i++) {
-        if (fork()) {
-            wait(NULL);
-        } else {
-            execlp(argv[0], argv[0], "-q", NULL);
-        }
+    if (sscanf(argv[2], "%i", &number_of_procs) == 0) {
+        fprintf(stderr, "The \"number-of-procs\" argument "
+                "is not a valid integer.\n");
+        exit(2);
     }
 
+    gettimeofday(&timeval1, &mytimezone);
+
+    for (i=0; i<number_of_procs; i++) {
+            parent = fork();
+            if (!parent)
+                    break;
+    }
+
+    if (!parent) {
+        for (i=0; i<number_of_forks; i++) {
+            if (fork()) {
+                wait(NULL);
+            } else {
+                execlp(argv[0], argv[0], "-q", NULL);
+            }
+        }
+    }
+    wait(NULL);
     gettimeofday(&timeval2, &mytimezone);
 
     timeval_subtract(&timeval_result, &timeval2, &timeval1);
 
-    printf("Forked, executed and destroyed %i processes in %lu.%lu seconds.\n",
-           number_of_forks, timeval_result.tv_sec, timeval_result.tv_usec);
+
+    if (parent)
+            printf("Forked, executed %i times for %i procs in %lu.%lu seconds.\n",
+                   number_of_forks, number_of_procs, timeval_result.tv_sec, timeval_result.tv_usec);
 }
